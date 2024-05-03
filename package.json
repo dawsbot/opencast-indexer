@@ -23,7 +23,8 @@
   },
   "scripts": {
     "start": "tsx src/app.ts",
-    "check": "npx @biomejs/biome check --apply src"
+    "check": "npx @biomejs/biome check --apply src",
+    "test": "tsc"
   },
   "devDependencies": {
     "@biomejs/biome": "1.7.2",
