@@ -22,9 +22,11 @@
     "tiny-typed-emitter": "^2.1.0"
   },
   "scripts": {
-    "start": "tsx src/app.ts"
+    "start": "tsx src/app.ts",
+    "check": "npx @biomejs/biome check --apply src"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.7.2",
     "@types/humanize-duration": "^3.27.1",
     "@types/node": "^20.11.30",
     "@types/pg": "^8.10.3",
