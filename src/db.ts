@@ -1,19 +1,19 @@
+import { promises as fs } from "fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import type { HubTables } from "@farcaster/hub-shuttle";
+import type { Fid } from "@farcaster/shuttle";
 import {
   ColumnType,
   FileMigrationProvider,
-  Generated,
+  type Generated,
   GeneratedAlways,
-  Kysely,
+  type Kysely,
   MigrationInfo,
   Migrator,
 } from "kysely";
-import { Logger } from "./log";
-import { err, ok, Result } from "neverthrow";
-import path from "path";
-import { promises as fs } from "fs";
-import { fileURLToPath } from "node:url";
-import { HubTables } from "@farcaster/hub-shuttle";
-import { Fid } from "@farcaster/shuttle";
+import { type Result, err, ok } from "neverthrow";
+import type { Logger } from "./log";
 
 const createMigrator = async (db: Kysely<HubTables>, log: Logger) => {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +31,7 @@ const createMigrator = async (db: Kysely<HubTables>, log: Logger) => {
 
 export const migrateToLatest = async (
   db: Kysely<HubTables>,
-  log: Logger
+  log: Logger,
 ): Promise<Result<void, unknown>> => {
   const migrator = await createMigrator(db, log);
 

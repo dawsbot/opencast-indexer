@@ -1,30 +1,32 @@
+import { readFileSync } from "fs";
+import * as process from "node:process";
+import url from "node:url";
+import { Command } from "@commander-js/extra-typings";
 import {
-  DB,
-  getDbClient,
-  getHubClient,
-  MessageHandler,
-  StoreMessageOperation,
-  MessageReconciliation,
-  RedisClient,
-  HubEventProcessor,
-  EventStreamHubSubscriber,
-  EventStreamConnection,
-  HubEventStreamConsumer,
-  HubSubscriber,
-  MessageState,
-} from "@farcaster/shuttle"; // If you want to use this as a standalone app, replace this import with ""
-import { farcasterTimeToDate } from "./utils";
-import { AppDb, migrateToLatest, Tables } from "./db";
-import {
+  type HubEvent,
+  type Message,
   bytesToHexString,
-  HubEvent,
   isCastAddMessage,
   isCastRemoveMessage,
-  Message,
 } from "@farcaster/hub-nodejs";
-import { log } from "./log";
-import { Command } from "@commander-js/extra-typings";
-import { readFileSync } from "fs";
+import {
+  type DB,
+  EventStreamConnection,
+  EventStreamHubSubscriber,
+  HubEventProcessor,
+  HubEventStreamConsumer,
+  type HubSubscriber,
+  type MessageHandler,
+  MessageReconciliation,
+  type MessageState,
+  RedisClient,
+  type StoreMessageOperation,
+  getDbClient,
+  getHubClient,
+} from "@farcaster/shuttle"; // If you want to use this as a standalone app, replace this import with ""
+import type { Queue } from "bullmq";
+import { Result, ok } from "neverthrow";
+import { type AppDb, Tables, migrateToLatest } from "./db";
 import {
   BACKFILL_FIDS,
   CONCURRENCY,
@@ -36,11 +38,9 @@ import {
   SHARD_INDEX,
   TOTAL_SHARDS,
 } from "./env";
-import * as process from "node:process";
-import url from "node:url";
-import { ok, Result } from "neverthrow";
+import { log } from "./log";
+import { farcasterTimeToDate } from "./utils";
 import { getQueue, getWorker } from "./worker";
-import { Queue } from "bullmq";
 
 const hubId = "shuttle";
 
@@ -55,7 +55,7 @@ export class App implements MessageHandler {
     db: DB,
     redis: RedisClient,
     hubSubscriber: HubSubscriber,
-    streamConsumer: HubEventStreamConsumer
+    streamConsumer: HubEventStreamConsumer,
   ) {
     this.db = db;
     this.redis = redis;
@@ -70,7 +70,7 @@ export class App implements MessageHandler {
     hubUrl: string,
     totalShards: number,
     shardIndex: number,
-    hubSSL = false
+    hubSSL = false,
   ) {
     const db = getDbClient(dbUrl);
     const hub = getHubClient(hubUrl, { ssl: hubSSL });
@@ -87,12 +87,12 @@ export class App implements MessageHandler {
       log,
       null,
       totalShards,
-      shardIndex
+      shardIndex,
     );
     const streamConsumer = new HubEventStreamConsumer(
       hub,
       eventStreamForRead,
-      shardKey
+      shardKey,
     );
 
     return new App(db, redis, hubSubscriber, streamConsumer);
@@ -104,7 +104,7 @@ export class App implements MessageHandler {
     operation: StoreMessageOperation,
     state: MessageState,
     isNew: boolean,
-    wasMissed: boolean
+    wasMissed: boolean,
   ): Promise<void> {
     if (!isNew) {
       // Message was already in the db, no-op
@@ -144,8 +144,8 @@ export class App implements MessageHandler {
       : `message (${operation})`;
     log.info(
       `${state} ${messageDesc} ${bytesToHexString(
-        message.hash
-      )._unsafeUnwrap()} (type ${message.data?.type})`
+        message.hash,
+      )._unsafeUnwrap()} (type ${message.data?.type})`,
     );
   }
 
@@ -171,7 +171,7 @@ export class App implements MessageHandler {
     const reconciler = new MessageReconciliation(
       this.hubSubscriber.hubClient!,
       this.db,
-      log
+      log,
     );
     for (const fid of fids) {
       await reconciler.reconcileMessagesForFid(
@@ -181,21 +181,21 @@ export class App implements MessageHandler {
             await HubEventProcessor.handleMissingMessage(
               this.db,
               message,
-              this
+              this,
             );
           } else if (prunedInDb || revokedInDb) {
             const messageDesc = prunedInDb
               ? "pruned"
               : revokedInDb
-              ? "revoked"
-              : "existing";
+                ? "revoked"
+                : "existing";
             log.info(
               `Reconciled ${messageDesc} message ${bytesToHexString(
-                message.hash
-              )._unsafeUnwrap()}`
+                message.hash,
+              )._unsafeUnwrap()}`,
             );
           }
-        }
+        },
       );
     }
   }
@@ -211,7 +211,9 @@ export class App implements MessageHandler {
         log.error("Failed to get max fid", maxFidResult.error);
         throw maxFidResult.error;
       }
-      const maxFid = MAX_FID ? parseInt(MAX_FID) : maxFidResult.value.fids[0];
+      const maxFid = MAX_FID
+        ? Number.parseInt(MAX_FID)
+        : maxFidResult.value.fids[0];
       if (!maxFid) {
         log.error("Max fid was undefined");
         throw new Error("Max fid was undefined");
@@ -221,7 +223,7 @@ export class App implements MessageHandler {
       const batchSize = 10;
       const fids = Array.from(
         { length: Math.ceil(maxFid / batchSize) },
-        (_, i) => i * batchSize
+        (_, i) => i * batchSize,
       ).map((fid) => fid + 1);
       for (const start of fids) {
         const subset = Array.from({ length: batchSize }, (_, i) => start + i);
@@ -259,7 +261,7 @@ if (
 ) {
   async function start() {
     log.info(
-      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
+      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
     );
     const app = App.create(
       POSTGRES_URL,
@@ -267,7 +269,7 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL
+      HUB_SSL,
     );
     log.info("Starting shuttle");
     await app.start();
@@ -275,7 +277,7 @@ if (
 
   async function backfill() {
     log.info(
-      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
+      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
     );
     const app = App.create(
       POSTGRES_URL,
@@ -283,10 +285,10 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL
+      HUB_SSL,
     );
     const fids = BACKFILL_FIDS
-      ? BACKFILL_FIDS.split(",").map((fid) => parseInt(fid))
+      ? BACKFILL_FIDS.split(",").map((fid) => Number.parseInt(fid))
       : [];
     log.info(`Backfilling fids: ${fids}`);
     const backfillQueue = getQueue(app.redis.client);
@@ -300,7 +302,7 @@ if (
 
   async function worker() {
     log.info(
-      `Starting worker connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
+      `Starting worker connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
     );
     const app = App.create(
       POSTGRES_URL,
@@ -308,7 +310,7 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL
+      HUB_SSL,
     );
     const worker = getWorker(app, app.redis.client, log, CONCURRENCY);
     await worker.run();

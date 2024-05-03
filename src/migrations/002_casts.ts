@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 // biome-ignore lint/suspicious/noExplicitAny: legacy code, avoid using ignore for new code
 export const up = async (db: Kysely<any>) => {
@@ -6,8 +6,12 @@ export const up = async (db: Kysely<any>) => {
   await db.schema
     .createTable("casts")
     .addColumn("id", "uuid", (col) => col.defaultTo(sql`generate_ulid()`))
-    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`current_timestamp`))
-    .addColumn("updatedAt", "timestamptz", (col) => col.notNull().defaultTo(sql`current_timestamp`))
+    .addColumn("createdAt", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`current_timestamp`),
+    )
+    .addColumn("updatedAt", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`current_timestamp`),
+    )
     .addColumn("deletedAt", "timestamptz")
     .addColumn("timestamp", "timestamptz", (col) => col.notNull())
     .addColumn("fid", "bigint", (col) => col.notNull())

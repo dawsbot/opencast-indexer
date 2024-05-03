@@ -1,7 +1,7 @@
-import { Redis } from "ioredis";
-import { Job, Queue, Worker } from "bullmq";
-import { App } from "../app";
-import { pino } from "pino";
+import { type Job, Queue, Worker } from "bullmq";
+import type { Redis } from "ioredis";
+import type { pino } from "pino";
+import type { App } from "../app";
 
 const QUEUE_NAME = "default";
 
@@ -9,7 +9,7 @@ export function getWorker(
   app: App,
   redis: Redis,
   log: pino.Logger,
-  concurrency = 1
+  concurrency = 1,
 ) {
   const worker = new Worker(
     QUEUE_NAME,
@@ -23,14 +23,14 @@ export function getWorker(
         log.info(
           `Reconciled ${
             fids.length
-          } upto ${lastFid} in ${elapsed}s at ${new Date().toISOString()}`
+          } upto ${lastFid} in ${elapsed}s at ${new Date().toISOString()}`,
         );
       } else if (job.name === "completionMarker") {
         // TODO: Update key in redis so event streaming can start
         const startedAt = new Date(job.data.startedAt as number);
         const duration = (Date.now() - startedAt.getTime()) / 1000 / 60;
         log.info(
-          `Reconciliation started at ${startedAt.toISOString()} complete at ${new Date().toISOString()} ${duration} minutes`
+          `Reconciliation started at ${startedAt.toISOString()} complete at ${new Date().toISOString()} ${duration} minutes`,
         );
       }
     },
@@ -41,7 +41,7 @@ export function getWorker(
       connection: redis,
       removeOnComplete: { count: 100 }, // Keep at most this many completed jobs
       removeOnFail: { count: 100 }, // Keep at most this many failed jobs
-    }
+    },
   );
 
   return worker;

@@ -1,4 +1,4 @@
-import { Kysely, sql } from "kysely";
+import { type Kysely, sql } from "kysely";
 
 /**************************************************************************************************
  Notes about the patterns in this file:
@@ -56,8 +56,12 @@ export const up = async (db: Kysely<any>) => {
   await db.schema
     .createTable("messages")
     .addColumn("id", "uuid", (col) => col.defaultTo(sql`generate_ulid()`))
-    .addColumn("createdAt", "timestamptz", (col) => col.notNull().defaultTo(sql`current_timestamp`))
-    .addColumn("updatedAt", "timestamptz", (col) => col.notNull().defaultTo(sql`current_timestamp`))
+    .addColumn("createdAt", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`current_timestamp`),
+    )
+    .addColumn("updatedAt", "timestamptz", (col) =>
+      col.notNull().defaultTo(sql`current_timestamp`),
+    )
     .addColumn("timestamp", "timestamptz", (col) => col.notNull())
     .addColumn("deletedAt", "timestamptz")
     .addColumn("prunedAt", "timestamptz")
@@ -71,19 +75,37 @@ export const up = async (db: Kysely<any>) => {
     .addColumn("body", "json", (col) => col.notNull())
     .addColumn("raw", "bytea", (col) => col.notNull())
     .addUniqueConstraint("messages_hash_unique", ["hash"])
-    .addUniqueConstraint("messages_hash_fid_type_unique", ["hash", "fid", "type"])
+    .addUniqueConstraint("messages_hash_fid_type_unique", [
+      "hash",
+      "fid",
+      "type",
+    ])
     // .addForeignKeyConstraint("messages_fid_foreign", ["fid"], "fids", ["fid"], (cb) => cb.onDelete("cascade"))
     // .addForeignKeyConstraint("messages_signer_fid_foreign", ["fid", "signer"], "signers", ["fid", "key"], (cb) =>
     //   cb.onDelete("cascade"),
     // )
     .$call((qb) =>
-      qb.addPrimaryKeyConstraint("messages_pkey", ["id"]).addUniqueConstraint("messages_hash_unique", ["hash"]),
+      qb
+        .addPrimaryKeyConstraint("messages_pkey", ["id"])
+        .addUniqueConstraint("messages_hash_unique", ["hash"]),
     )
     .execute();
 
-  await db.schema.createIndex("messages_timestamp_index").on("messages").columns(["timestamp"]).execute();
+  await db.schema
+    .createIndex("messages_timestamp_index")
+    .on("messages")
+    .columns(["timestamp"])
+    .execute();
 
-  await db.schema.createIndex("messages_fid_index").on("messages").columns(["fid"]).execute();
+  await db.schema
+    .createIndex("messages_fid_index")
+    .on("messages")
+    .columns(["fid"])
+    .execute();
 
-  await db.schema.createIndex("messages_signer_index").on("messages").columns(["signer"]).execute();
+  await db.schema
+    .createIndex("messages_signer_index")
+    .on("messages")
+    .columns(["signer"])
+    .execute();
 };
