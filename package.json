@@ -29,7 +29,10 @@
   "prettier": {
     "trailingComma": "all",
     "tabWidth": 2,
-    "singleQuote": true
+    "singleQuote": true,
+    "plugins": [
+      "prettier-plugin-organize-imports"
+    ]
   },
   "devDependencies": {
     "@types/humanize-duration": "^3.27.1",

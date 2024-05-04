@@ -1,4 +1,4 @@
-import { type Kysely, sql } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 
 /**************************************************************************************************
  Notes about the patterns in this file:

@@ -1,4 +1,4 @@
-import { type Job, Queue, Worker } from 'bullmq';
+import { Queue, Worker, type Job } from 'bullmq';
 import type { Redis } from 'ioredis';
 import type { pino } from 'pino';
 import type { App } from './app';
