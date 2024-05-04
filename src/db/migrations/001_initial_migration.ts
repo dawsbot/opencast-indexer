@@ -42,12 +42,11 @@ import { type Kysely, sql } from "kysely";
  the downstream tables referencing that message will also be deleted.
  **************************************************************************************************/
 
-// biome-ignore lint/suspicious/noExplicitAny: legacy code, avoid using ignore for new code
-export const up = async (db: Kysely<any>) => {
+export const up = async (db: Kysely<unknown>) => {
   // Used for generating random bytes in ULID creation
   await sql`CREATE EXTENSION IF NOT EXISTS pgcrypto`.execute(db);
 
-  await sql`CREATE FUNCTION generate_ulid() RETURNS uuid
+  await sql`DROP FUNCTION generate_ulid; CREATE FUNCTION generate_ulid() RETURNS uuid
     LANGUAGE sql STRICT PARALLEL SAFE
     RETURN ((lpad(to_hex((floor((EXTRACT(epoch FROM clock_timestamp()) * (1000)::numeric)))::bigint), 12, '0'::text) || encode(public.gen_random_bytes(10), 'hex'::text)))::uuid;
   `.execute(db);
@@ -57,10 +56,10 @@ export const up = async (db: Kysely<any>) => {
     .createTable("messages")
     .addColumn("id", "uuid", (col) => col.defaultTo(sql`generate_ulid()`))
     .addColumn("createdAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`current_timestamp`),
+      col.notNull().defaultTo(sql`current_timestamp`)
     )
     .addColumn("updatedAt", "timestamptz", (col) =>
-      col.notNull().defaultTo(sql`current_timestamp`),
+      col.notNull().defaultTo(sql`current_timestamp`)
     )
     .addColumn("timestamp", "timestamptz", (col) => col.notNull())
     .addColumn("deletedAt", "timestamptz")
@@ -87,7 +86,7 @@ export const up = async (db: Kysely<any>) => {
     .$call((qb) =>
       qb
         .addPrimaryKeyConstraint("messages_pkey", ["id"])
-        .addUniqueConstraint("messages_hash_unique", ["hash"]),
+        .addUniqueConstraint("messages_hash_unique", ["hash"])
     )
     .execute();
 
@@ -108,4 +107,9 @@ export const up = async (db: Kysely<any>) => {
     .on("messages")
     .columns(["signer"])
     .execute();
+};
+
+export const down = async (db: Kysely<unknown>) => {
+  // Delete in reverse order of above so that foreign keys are not violated.
+  await db.schema.dropTable("messages").ifExists().execute();
 };

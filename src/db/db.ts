@@ -13,7 +13,8 @@ import {
   Migrator,
 } from "kysely";
 import { type Result, err, ok } from "neverthrow";
-import type { Logger } from "./log";
+import type { Logger } from "../log";
+import type { Tables } from "./db.types";
 
 const createMigrator = async (db: Kysely<HubTables>, log: Logger) => {
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +32,7 @@ const createMigrator = async (db: Kysely<HubTables>, log: Logger) => {
 
 export const migrateToLatest = async (
   db: Kysely<HubTables>,
-  log: Logger,
+  log: Logger
 ): Promise<Result<void, unknown>> => {
   const migrator = await createMigrator(db, log);
 
@@ -54,20 +55,5 @@ export const migrateToLatest = async (
   log.info("Migrations up to date");
   return ok(undefined);
 };
-
-export type CastRow = {
-  id: Generated<string>;
-  createdAt: Generated<Date>;
-  updatedAt: Generated<Date>;
-  deletedAt: Date | null;
-  timestamp: Date;
-  fid: Fid;
-  hash: Uint8Array;
-  text: string;
-};
-
-export interface Tables extends HubTables {
-  casts: CastRow;
-}
 
 export type AppDb = Kysely<Tables>;
