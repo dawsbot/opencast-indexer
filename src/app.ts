@@ -26,7 +26,7 @@ import {
 } from "@farcaster/shuttle"; // If you want to use this as a standalone app, replace this import with ""
 import type { Queue } from "bullmq";
 import { Result, ok } from "neverthrow";
-import { type AppDb, Tables, migrateToLatest } from "./db";
+import { type AppDb, migrateToLatest } from "./db/db";
 import {
   BACKFILL_FIDS,
   CONCURRENCY,
@@ -41,6 +41,8 @@ import {
 import { log } from "./log";
 import { farcasterTimeToDate } from "./utils";
 import { getQueue, getWorker } from "./worker";
+import { Casts } from "./db/models/Casts.model";
+import { jobNames } from "./jobs";
 
 const hubId = "shuttle";
 
@@ -55,7 +57,7 @@ export class App implements MessageHandler {
     db: DB,
     redis: RedisClient,
     hubSubscriber: HubSubscriber,
-    streamConsumer: HubEventStreamConsumer,
+    streamConsumer: HubEventStreamConsumer
   ) {
     this.db = db;
     this.redis = redis;
@@ -70,7 +72,7 @@ export class App implements MessageHandler {
     hubUrl: string,
     totalShards: number,
     shardIndex: number,
-    hubSSL = false,
+    hubSSL = false
   ) {
     const db = getDbClient(dbUrl);
     const hub = getHubClient(hubUrl, { ssl: hubSSL });
@@ -87,12 +89,12 @@ export class App implements MessageHandler {
       log,
       undefined,
       totalShards,
-      shardIndex,
+      shardIndex
     );
     const streamConsumer = new HubEventStreamConsumer(
       hub,
       eventStreamForRead,
-      shardKey,
+      shardKey
     );
 
     return new App(db, redis, hubSubscriber, streamConsumer);
@@ -104,7 +106,7 @@ export class App implements MessageHandler {
     operation: StoreMessageOperation,
     state: MessageState,
     isNew: boolean,
-    wasMissed: boolean,
+    wasMissed: boolean
   ): Promise<void> {
     if (!isNew) {
       // Message was already in the db, no-op
@@ -117,26 +119,13 @@ export class App implements MessageHandler {
     // Note that since we're relying on "state", this can sometimes be invoked twice. e.g. when a CastRemove is merged, this call will be invoked 2 twice:
     // castAdd, operation=delete, state=deleted (the cast that the remove is removing)
     // castRemove, operation=merge, state=deleted (the actual remove message)
-    const isCastMessage =
-      isCastAddMessage(message) || isCastRemoveMessage(message);
-    if (isCastMessage && state === "created") {
-      await appDB
-        .insertInto("casts")
-        .values({
-          fid: message.data.fid,
-          hash: message.hash,
-          text: message.data.castAddBody?.text || "",
-          timestamp: farcasterTimeToDate(message.data.timestamp) || new Date(),
-        })
-        .execute();
-    } else if (isCastMessage && state === "deleted") {
-      await appDB
-        .updateTable("casts")
-        .set({
-          deletedAt: farcasterTimeToDate(message.data.timestamp) || new Date(),
-        })
-        .where("hash", "=", message.hash)
-        .execute();
+    // const isCastMessage =
+    //   isCastAddMessage(message) || isCastRemoveMessage(message);
+    const casts = new Casts(appDB);
+    if (isCastAddMessage(message) && state === "created") {
+      await casts.insertOne(message);
+    } else if (isCastRemoveMessage(message) && state === "deleted") {
+      await casts.deleteOne(message);
     }
 
     const messageDesc = wasMissed
@@ -144,8 +133,8 @@ export class App implements MessageHandler {
       : `message (${operation})`;
     log.info(
       `${state} ${messageDesc} ${bytesToHexString(
-        message.hash,
-      )._unsafeUnwrap()} (type ${message.data?.type})`,
+        message.hash
+      )._unsafeUnwrap()} (type ${message.data?.type})`
     );
   }
 
@@ -170,7 +159,7 @@ export class App implements MessageHandler {
     const reconciler = new MessageReconciliation(
       this.hubSubscriber.hubClient!,
       this.db,
-      log,
+      log
     );
     for (const fid of fids) {
       await reconciler.reconcileMessagesForFid(
@@ -180,21 +169,21 @@ export class App implements MessageHandler {
             await HubEventProcessor.handleMissingMessage(
               this.db,
               message,
-              this,
+              this
             );
           } else if (prunedInDb || revokedInDb) {
             const messageDesc = prunedInDb
               ? "pruned"
               : revokedInDb
-                ? "revoked"
-                : "existing";
+              ? "revoked"
+              : "existing";
             log.info(
               `Reconciled ${messageDesc} message ${bytesToHexString(
-                message.hash,
-              )._unsafeUnwrap()}`,
+                message.hash
+              )._unsafeUnwrap()}`
             );
           }
-        },
+        }
       );
     }
   }
@@ -202,7 +191,7 @@ export class App implements MessageHandler {
   async backfillFids(fids: number[], backfillQueue: Queue) {
     const startedAt = Date.now();
     if (fids.length === 0) {
-      const maxFidResult = await this.hubSubscriber.hubClient.getFids({
+      const maxFidResult = await this.hubSubscriber.hubClient!.getFids({
         pageSize: 1,
         reverse: true,
       });
@@ -222,16 +211,16 @@ export class App implements MessageHandler {
       const batchSize = 10;
       const fids = Array.from(
         { length: Math.ceil(maxFid / batchSize) },
-        (_, i) => i * batchSize,
+        (_, i) => i * batchSize
       ).map((fid) => fid + 1);
       for (const start of fids) {
         const subset = Array.from({ length: batchSize }, (_, i) => start + i);
-        await backfillQueue.add("reconcile", { fids: subset });
+        await backfillQueue.add(jobNames.reconcile, { fids: subset });
       }
     } else {
-      await backfillQueue.add("reconcile", { fids });
+      await backfillQueue.add(jobNames.reconcile, { fids });
     }
-    await backfillQueue.add("completionMarker", { startedAt });
+    await backfillQueue.add(jobNames.completionMarker, { startedAt });
     log.info("Backfill jobs queued");
   }
 
@@ -260,7 +249,7 @@ if (
 ) {
   async function start() {
     log.info(
-      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
+      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
     );
     const app = App.create(
       POSTGRES_URL,
@@ -268,7 +257,7 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL,
+      HUB_SSL
     );
     log.info("Starting shuttle");
     await app.start();
@@ -276,7 +265,7 @@ if (
 
   async function backfill() {
     log.info(
-      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
+      `Creating app connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
     );
     const app = App.create(
       POSTGRES_URL,
@@ -284,7 +273,7 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL,
+      HUB_SSL
     );
     const fids = BACKFILL_FIDS
       ? BACKFILL_FIDS.split(",").map((fid) => Number.parseInt(fid))
@@ -301,7 +290,7 @@ if (
 
   async function worker() {
     log.info(
-      `Starting worker connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`,
+      `Starting worker connecting to: ${POSTGRES_URL}, ${REDIS_URL}, ${HUB_HOST}`
     );
     const app = App.create(
       POSTGRES_URL,
@@ -309,7 +298,7 @@ if (
       HUB_HOST,
       TOTAL_SHARDS,
       SHARD_INDEX,
-      HUB_SSL,
+      HUB_SSL
     );
     const worker = getWorker(app, app.redis.client, log, CONCURRENCY);
     await worker.run();
