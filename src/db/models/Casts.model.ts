@@ -2,12 +2,12 @@ import {
   CastRemoveMessage,
   fromFarcasterTime,
   type CastAddMessage,
-} from "@farcaster/hub-nodejs";
-import type { AppDb } from "../db";
-import type { Insertable } from "kysely";
-import type { Tables } from "../db.types";
-import { farcasterTimeToDate } from "../../utils";
-import { log } from "../../log";
+} from '@farcaster/hub-nodejs';
+import type { AppDb } from '../db';
+import type { Insertable } from 'kysely';
+import type { Tables } from '../db.types';
+import { farcasterTimeToDate } from '../../utils';
+import { log } from '../../log';
 
 export class Casts {
   private appDb: AppDb;
@@ -30,21 +30,21 @@ export class Casts {
       embeds: JSON.stringify(castAddBody.embeds),
       mentions: JSON.stringify(castAddBody.mentions),
       mentionsPositions: JSON.stringify(castAddBody.mentionsPositions),
-    } satisfies unknown as Insertable<Tables["casts"]>;
+    } satisfies unknown as Insertable<Tables['casts']>;
   }
   public async insertOne(message: CastAddMessage) {
     const cast = this.formatCastAddMessage(message);
 
-    await this.appDb.insertInto("casts").values(cast).execute();
+    await this.appDb.insertInto('casts').values(cast).execute();
   }
   public async deleteOne(message: CastRemoveMessage) {
     await this.appDb
-      .updateTable("casts")
+      .updateTable('casts')
       .set({
         deletedAt: farcasterTimeToDate(message.data.timestamp) || new Date(),
       })
-      .where("hash", "=", message.hash)
+      .where('hash', '=', message.hash)
       .execute();
-    log.trace("Deleted cast", message.hash);
+    log.trace('Deleted cast', message.hash);
   }
 }

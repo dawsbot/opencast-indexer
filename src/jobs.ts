@@ -1,4 +1,4 @@
 export const jobNames = {
-  reconcile: "reconcile",
-  completionMarker: "completionMarker",
+  reconcile: 'reconcile',
+  completionMarker: 'completionMarker',
 } as const;
