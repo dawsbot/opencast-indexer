@@ -1,5 +1,5 @@
-import { ReactionType, UserDataType } from "@farcaster/hub-nodejs";
-import { ColumnType, Generated, GeneratedAlways } from "kysely";
+import { ReactionType, UserDataType } from '@farcaster/hub-nodejs';
+import { ColumnType, Generated, GeneratedAlways } from 'kysely';
 
 type Fid = number;
 type Hex = `0x${string}`;

@@ -1,4 +1,4 @@
-import { fromFarcasterTime } from "@farcaster/hub-nodejs";
+import { fromFarcasterTime } from '@farcaster/hub-nodejs';
 export function farcasterTimeToDate(
   time: number | null | undefined,
 ): Date | null | undefined {
