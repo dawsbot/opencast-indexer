@@ -121,6 +121,6 @@ export interface Tables {
   reactions: ReactionRow;
   links: LinkRow;
   verifications: VerificationRow;
-  userData: UserDataRow;
+  userDatas: UserDataRow;
   hubs: HubRow;
 }

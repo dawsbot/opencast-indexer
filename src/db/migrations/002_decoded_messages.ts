@@ -225,7 +225,7 @@ export const up = async (db: Kysely<unknown>) => {
 
   // USER DATA
   await db.schema
-    .createTable('userData')
+    .createTable('userDatas')
     .ifNotExists()
     .addColumn('id', 'uuid', (col) =>
       col.defaultTo(sql`generate_ulid()`).primaryKey(),
@@ -279,7 +279,7 @@ export const up = async (db: Kysely<unknown>) => {
 export const down = async (db: Kysely<unknown>) => {
   // Delete in reverse order of above so that foreign keys are not violated.
   await db.schema.dropTable('hubs').ifExists().execute();
-  await db.schema.dropTable('userData').ifExists().execute();
+  await db.schema.dropTable('userDatas').ifExists().execute();
   await db.schema.dropTable('verifications').ifExists().execute();
   await db.schema.dropTable('links').ifExists().execute();
   await db.schema.dropTable('reactions').ifExists().execute();
