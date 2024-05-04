@@ -1,32 +1,31 @@
-import { readFileSync } from 'node:fs';
-import * as process from 'node:process';
-import url from 'node:url';
 import { Command } from '@commander-js/extra-typings';
 import {
+  bytesToHexString,
   type HubEvent,
   type Message,
-  bytesToHexString,
-  isCastAddMessage,
-  isCastRemoveMessage,
 } from '@farcaster/hub-nodejs';
 import {
-  type DB,
   EventStreamConnection,
   EventStreamHubSubscriber,
   HubEventProcessor,
   HubEventStreamConsumer,
-  type HubSubscriber,
-  type MessageHandler,
   MessageReconciliation,
-  type MessageState,
   RedisClient,
-  type StoreMessageOperation,
   getDbClient,
   getHubClient,
+  type DB,
+  type HubSubscriber,
+  type MessageHandler,
+  type MessageState,
+  type StoreMessageOperation,
 } from '@farcaster/shuttle'; // If you want to use this as a standalone app, replace this import with ""
 import type { Queue } from 'bullmq';
-import { Result, ok } from 'neverthrow';
-import { type AppDb, migrateToLatest } from './db/db';
+import { ok } from 'neverthrow';
+import { readFileSync } from 'node:fs';
+import * as process from 'node:process';
+import url from 'node:url';
+import { MessageWriter } from './Message';
+import { migrateToLatest, type AppDb } from './db/db';
 import {
   BACKFILL_FIDS,
   CONCURRENCY,
@@ -38,10 +37,9 @@ import {
   SHARD_INDEX,
   TOTAL_SHARDS,
 } from './env';
+import { jobNames } from './jobs';
 import { log } from './log';
 import { getQueue, getWorker } from './worker';
-import { jobNames } from './jobs';
-import { MessageWriter } from './Message';
 
 const hubId = 'shuttle';
 

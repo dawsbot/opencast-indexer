@@ -4,9 +4,9 @@ import {
   isCastRemoveMessage,
   isReactionAddMessage,
 } from '@farcaster/hub-nodejs';
-import { Casts } from './db/models/Casts.model';
-import { AppDb } from './db/db';
 import { MessageState } from '@farcaster/shuttle';
+import { AppDb } from './db/db';
+import { Casts } from './db/models/Casts.model';
 import { Reactions } from './db/models/Reactions.model';
 import { log } from './log';
 

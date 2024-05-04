@@ -1,12 +1,7 @@
-import type { AppDb } from '../db';
+import { ReactionAddMessage, fromFarcasterTime } from '@farcaster/core';
 import type { Insertable } from 'kysely';
+import type { AppDb } from '../db';
 import type { Tables } from '../db.types';
-import { log } from '../../log';
-import {
-  ReactionAddMessage,
-  ReactionRemoveMessage,
-  fromFarcasterTime,
-} from '@farcaster/core';
 
 export class Reactions {
   private appDb: AppDb;

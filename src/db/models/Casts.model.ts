@@ -3,11 +3,11 @@ import {
   fromFarcasterTime,
   type CastAddMessage,
 } from '@farcaster/hub-nodejs';
-import type { AppDb } from '../db';
 import type { Insertable } from 'kysely';
-import type { Tables } from '../db.types';
-import { farcasterTimeToDate } from '../../utils';
 import { log } from '../../log';
+import { farcasterTimeToDate } from '../../utils';
+import type { AppDb } from '../db';
+import type { Tables } from '../db.types';
 
 export class Casts {
   private appDb: AppDb;

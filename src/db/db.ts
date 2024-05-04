@@ -1,18 +1,9 @@
+import type { HubTables } from '@farcaster/hub-shuttle';
+import { FileMigrationProvider, Migrator, type Kysely } from 'kysely';
+import { err, ok, type Result } from 'neverthrow';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { HubTables } from '@farcaster/hub-shuttle';
-import type { Fid } from '@farcaster/shuttle';
-import {
-  ColumnType,
-  FileMigrationProvider,
-  type Generated,
-  GeneratedAlways,
-  type Kysely,
-  MigrationInfo,
-  Migrator,
-} from 'kysely';
-import { type Result, err, ok } from 'neverthrow';
 import type { Logger } from '../log';
 import type { Tables } from './db.types';
 
