@@ -206,14 +206,14 @@ export const up = async (db: Kysely<unknown>) => {
     .addColumn('timestamp', 'timestamptz', (col) => col.notNull())
     .addColumn('deletedAt', 'timestamptz')
     .addColumn('fid', 'bigint', (col) => col.notNull())
-    .addColumn('hash', 'bytea', (col) => col.notNull())
+    .addColumn('hash', 'bytea', (col) => col.notNull().unique())
     .addColumn('signerAddress', 'bytea', (col) => col.notNull())
     .addColumn('blockHash', 'bytea', (col) => col.notNull())
     .addColumn('signature', 'bytea', (col) => col.notNull())
-    .addUniqueConstraint('verifications_signer_address_fid_unique', [
-      'signerAddress',
-      'fid',
-    ])
+    // .addUniqueConstraint('verifications_signer_address_fid_unique', [
+    //   'signerAddress',
+    //   'fid',
+    // ])
     .execute();
 
   await db.schema
