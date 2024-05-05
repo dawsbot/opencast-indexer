@@ -7,6 +7,8 @@ import {
   isReactionAddMessage,
   isReactionRemoveMessage,
   isUserDataAddMessage,
+  isVerificationAddAddressMessage,
+  isVerificationRemoveMessage,
 } from '@farcaster/hub-nodejs';
 import { MessageState } from '@farcaster/shuttle';
 import { AppDb } from './db/db';
@@ -14,7 +16,7 @@ import { Casts } from './db/models/Casts.model';
 import { Links } from './db/models/Links.model';
 import { Reactions } from './db/models/Reactions.model';
 import { UserDatas } from './db/models/UserDatas.model';
-import { log } from './log';
+import { Verifications } from './db/models/Verifications.Model';
 
 /**
  * Handles interaction with the database for any message
@@ -29,14 +31,17 @@ export class MessageWriter {
    * https://docs.farcaster.xyz/reference/hubble/datatypes/messages#_1-4-message-type
    */
   public async writeMessage(message: Message, state: MessageState) {
-    if (isCastAddMessage(message) && state === 'created') {
-      const casts = new Casts(this.appDb);
-      await casts.insertOne(message);
-    } else if (isCastRemoveMessage(message) && state === 'deleted') {
-      const casts = new Casts(this.appDb);
-      await casts.deleteOne(message);
+    if (isCastAddMessage(message)) {
+      if (state === 'created') {
+        const casts = new Casts(this.appDb);
+        await casts.insertOne(message);
+      }
+    } else if (isCastRemoveMessage(message)) {
+      if (state === 'deleted') {
+        const casts = new Casts(this.appDb);
+        await casts.deleteOne(message);
+      }
     } else if (isReactionAddMessage(message)) {
-      //   log.info('Adding message: ' + message.data.reactionBody);
       const reactions = new Reactions(this.appDb);
       await reactions.insertOne(message);
     } else if (isReactionRemoveMessage(message)) {
@@ -51,16 +56,24 @@ export class MessageWriter {
     } else if (isUserDataAddMessage(message)) {
       const userDatas = new UserDatas(this.appDb);
       await userDatas.insertOne(message);
+    } else if (isVerificationAddAddressMessage(message)) {
+      const verifications = new Verifications(this.appDb);
+      await verifications.insertOne(message);
+    } else if (isVerificationRemoveMessage(message)) {
+      const verifications = new Verifications(this.appDb);
+      await verifications.deleteOne(message);
     } else {
-      console.dir(message.data);
-      log.info(
+      //   if (message.data?.type === 1) {
+      //     console.dir({ data: message.data });
+      //   }
+      //   log.info(
+      //     'Message handler not implemented for this message type: ' +
+      //       message.data?.type,
+      //   );
+      throw new Error(
         'Message handler not implemented for this message type: ' +
           message.data?.type,
       );
-      //   throw new Error(
-      //     "Message handler not implemented for this message type: " +
-      //       message.data?.type
-      //   );
     }
   }
 }
