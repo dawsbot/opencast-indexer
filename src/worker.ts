@@ -1,20 +1,21 @@
-import { Redis } from "ioredis";
-import { Job, Queue, Worker } from "bullmq";
-import { App } from "../app";
-import { pino } from "pino";
+import { Queue, Worker, type Job } from 'bullmq';
+import type { Redis } from 'ioredis';
+import type { pino } from 'pino';
+import type { App } from './app';
+import { jobNames } from './jobs';
 
-const QUEUE_NAME = "default";
+const QUEUE_NAME = 'default';
 
 export function getWorker(
   app: App,
   redis: Redis,
   log: pino.Logger,
-  concurrency = 1
+  concurrency = 1,
 ) {
   const worker = new Worker(
     QUEUE_NAME,
     async (job: Job) => {
-      if (job.name === "reconcile") {
+      if (job.name === jobNames.reconcile) {
         const start = Date.now();
         const fids = job.data.fids as number[];
         await app.reconcileFids(fids);
@@ -23,15 +24,17 @@ export function getWorker(
         log.info(
           `Reconciled ${
             fids.length
-          } upto ${lastFid} in ${elapsed}s at ${new Date().toISOString()}`
+          } upto ${lastFid} in ${elapsed}s at ${new Date().toISOString()}`,
         );
-      } else if (job.name === "completionMarker") {
+      } else if (job.name === jobNames.completionMarker) {
         // TODO: Update key in redis so event streaming can start
         const startedAt = new Date(job.data.startedAt as number);
         const duration = (Date.now() - startedAt.getTime()) / 1000 / 60;
         log.info(
-          `Reconciliation started at ${startedAt.toISOString()} complete at ${new Date().toISOString()} ${duration} minutes`
+          `Reconciliation started at ${startedAt.toISOString()} complete at ${new Date().toISOString()} ${duration} minutes`,
         );
+      } else {
+        throw new Error(`Unknown job name: ${job.name}`);
       }
     },
     {
@@ -41,18 +44,18 @@ export function getWorker(
       connection: redis,
       removeOnComplete: { count: 100 }, // Keep at most this many completed jobs
       removeOnFail: { count: 100 }, // Keep at most this many failed jobs
-    }
+    },
   );
 
   return worker;
 }
 
 export function getQueue(redis: Redis) {
-  return new Queue("default", {
+  return new Queue('default', {
     connection: redis,
     defaultJobOptions: {
       attempts: 3,
-      backoff: { delay: 1000, type: "exponential" },
+      backoff: { delay: 1000, type: 'exponential' },
     },
   });
 }
