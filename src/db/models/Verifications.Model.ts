@@ -33,13 +33,17 @@ export class Verifications {
   public async insertOne(message: VerificationAddAddressMessage) {
     const verification = this.formatVerificationAddAddressMessage(message);
 
-    await this.appDb.insertInto('verifications').values(verification).execute();
+    await this.appDb
+      .insertInto('verifications')
+      .values(verification)
+      .onConflict((oc) => oc.columns(['fid', 'signerAddress']).doNothing())
+      .execute();
   }
   public async deleteOne(message: VerificationRemoveMessage) {
     await this.appDb
       .updateTable('verifications')
       .set({
-        deletedAt: farcasterTimeToDate(message.data.timestamp) || new Date(),
+        deletedAt: farcasterTimeToDate(message.data.timestamp),
       })
       .where('hash', '=', message.hash)
       .execute();
