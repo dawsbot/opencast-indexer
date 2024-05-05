@@ -210,10 +210,10 @@ export const up = async (db: Kysely<unknown>) => {
     .addColumn('signerAddress', 'bytea', (col) => col.notNull())
     .addColumn('blockHash', 'bytea', (col) => col.notNull())
     .addColumn('signature', 'bytea', (col) => col.notNull())
-    // .addUniqueConstraint('verifications_signer_address_fid_unique', [
-    //   'signerAddress',
-    //   'fid',
-    // ])
+    .addUniqueConstraint('verifications_signer_address_fid_unique', [
+      'signerAddress',
+      'fid',
+    ])
     .execute();
 
   await db.schema
@@ -243,13 +243,6 @@ export const up = async (db: Kysely<unknown>) => {
     .addColumn('hash', 'bytea', (col) => col.notNull().unique())
     .addColumn('value', 'text', (col) => col.notNull())
     .addUniqueConstraint('user_data_fid_type_unique', ['fid', 'type'])
-    .execute();
-
-  // Events
-  await db.schema
-    .createTable('events')
-    .ifNotExists()
-    .addColumn('id', 'int8', (col) => col.primaryKey())
     .execute();
 
   // Hubs
